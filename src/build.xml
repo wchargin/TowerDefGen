@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project TowerDef">
+	<!--this file was created by Eclipse Runnable JAR Export Wizard-->
+	<!--ANT 1.7 is required                                        -->
+
+	<property name="main_class_name" value="org.mrumrocks.td.TowerDef" />
+	<fail unless="base">The `base' property has not been set</fail>
+	<fail unless="jar_output">The `jar_output' property has not been set</fail>
+	<property name="src_dir" location="${base}/src/" />
+	<property name="rsc_dir" location="${base}/rsc/" />
+	<property name="bin_dir" location="${base}/bin/" />
+	<property name="rawcopy" location="${base}/rawcopy.zip" />
+	<property name="jgame_path" location="${base}/jgame-1.2.zip" />
+	
+
+	<target name="create_run_jar">
+		<mkdir dir="${bin_dir}" />
+		<echo message="${src_dir}" />
+		<unzip src="${rawcopy}" dest="${src_dir}" />
+		<javac srcdir="${src_dir}" destdir="${bin_dir}" classpath="${jgame_path};${rawcopy}" debug="on" />
+		<copy todir="${bin_dir}" overwrite="no">
+			<fileset dir="${src_dir}" />
+		</copy>
+		<jar destfile="${jar_output}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="${main_class_name}" />
+				<attribute name="Class-Path" value="." />
+			</manifest>
+			<fileset dir="${rsc_dir}" />
+			<fileset dir="${bin_dir}" />
+			<zipfileset src="${rawcopy}" />
+			<zipfileset excludes="META-INF/*.SF" src="${jgame_path}" />
+		</jar>
+	</target>
+</project>

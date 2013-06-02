@@ -1,0 +1,60 @@
+package org.mrumrocks.td.towers;
+
+import jgame.Context;
+import jgame.GSprite;
+import jgame.ImageCache;
+
+import org.mrumrocks.td.TowerDef;
+import org.mrumrocks.td.projectiles.Projectile;
+
+public class $$$NAME$$$ extends Tower {
+
+	private static final String TOWER_IMAGE = "$$$IMAGE$$$";
+	private static final int MAX_LEVEL = Integer.parseInt("$$$MAX_LEVEL$$$");
+
+	public $$$NAME$$$() {
+		super(ImageCache.forClass(TowerDef.class).get("towers/" + TOWER_IMAGE));
+	}
+
+	@Override
+	public int getUpgradeCostForLevel(int level) {
+$$$UPGRADE_COST_SWITCH$$$
+	}
+
+	@Override
+	protected int getFiringDelay(Context c) {
+$$$FIRING_DELAY_SWITCH$$$
+	}
+
+	@Override
+	protected Projectile createProjectile(Context c) {
+		Projectile projectile = null;
+$$$PROJECTILE_SWITCH$$$
+		snapAnchor(projectile);
+		return projectile;
+	}
+
+	@Override
+	protected double getProjectileSpeed(Context c) {
+$$$PROJECTILE_SPEED_SWITCH$$$
+	}
+
+	@Override
+	protected int getRange(Context c) {
+$$$RANGE_SWITCH$$$
+	}
+
+	@Override
+	public boolean hasUpgradeForLevel(int level) {
+		return level > 0 && level <= MAX_LEVEL;
+	}
+
+	@Override
+	public void doUpgrade(int level) {
+		if (level <= getLevel()) {
+			return;
+		}
+		setLevel(level);
+$$$IMAGE_SETTER_SWITCH$$$
+	}
+}

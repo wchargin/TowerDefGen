@@ -1,0 +1,31 @@
+package org.mrumrocks.td;
+
+import java.awt.Polygon;
+import java.awt.Shape;
+import java.util.List;
+
+import jgame.Context;
+import jgame.GObject;
+import jgame.GSprite;
+import jgame.ImageCache;
+import jgame.listener.HitTestListener;
+
+import org.mrumrocks.td.enemies.Enemy;
+
+public class Base extends GSprite {
+
+	public Base() {
+		super(ImageCache.forClass(TowerDef.class).get("$$$BASE_IMAGE$$$"));
+
+		addListener(new HitTestListener(Enemy.class) {
+			@Override
+			public void invoke(GObject target, Context context) {
+				List<Enemy> hit = context.hitTestClass(Enemy.class);
+				for (Enemy e : hit) {
+					e.removeSelf();
+				}
+			}
+		});
+	}
+
+}

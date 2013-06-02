@@ -1,0 +1,170 @@
+package org.mrumrocks.td;
+
+import jgame.Context;
+import jgame.GContainer;
+import jgame.GObject;
+import jgame.ImageCache;
+import jgame.SoundManager;
+import jgame.controller.MouseLocationController;
+import jgame.controller.PulsateController;
+import jgame.listener.ButtonListener;
+import jgame.listener.LocalClickListener;
+import jgame.listener.TimerListener;
+
+import org.mrumrocks.td.enemies.Enemy;
+import org.mrumrocks.td.maps.MapLevel;
+import org.mrumrocks.td.shop.PurchaseHandler;
+import org.mrumrocks.td.shop.ShopButton;
+import org.mrumrocks.td.shop.ShopPanel;
+import org.mrumrocks.td.shop.TowerGenerator;
+import org.mrumrocks.td.towers.Tower;
+
+public class GameView extends GContainer {
+
+	/**
+	 * The game info node.
+	 */
+	private final GameInfoNode info;
+
+	private MapLevel l;
+	private int cash = 300;
+
+	private ShopPanel sp;
+	private InfoPanel ip;
+	
+	private static final String PURCHASE_SOUND = "$$$PURCHASE_SOUND$$$";
+	private static final String INVALID_PURCHASE_SOUND = "$$$INVALID_PURCHASE_SOUND$$$";
+
+	public GameView(GameInfoNode info) {
+		super();
+
+		// Set the info.
+		this.info = info;
+
+		SoundManager.forClass(TowerDef.class).preloadAsync(PURCHASE_SOUND);
+		SoundManager.forClass(TowerDef.class).preloadAsync(INVALID_PURCHASE_SOUND);
+
+		// Set the size.
+		setSize(800, 600);
+
+		PurchaseHandler ph = new PurchaseHandler() {
+
+			private boolean purchaseInProgress = false;
+
+			@Override
+			public void performPurchase(final Tower tower, int cost) {
+				purchaseInProgress = true;
+
+				cash -= cost;
+				SoundManager.forClass(TowerDef.class).play(PURCHASE_SOUND);
+				sp.updateCashDisplay(cash);
+				l.addAtCenter(tower);
+
+				final PulsateController pc = new PulsateController(0.6, 0.4, 24);
+				pc.setProperties(PulsateController.ALPHA);
+				tower.addController(pc);
+
+				final MouseLocationController mlc = new MouseLocationController();
+				tower.addController(mlc);
+
+				tower.addListener(new ButtonListener() {
+					@Override
+					public void mouseClicked(Context context) {
+						if (!l.isOnPath(tower)
+								&& context.hitTestClass(Tower.class).size() == 1) {
+							tower.setAlpha(1.0);
+							tower.removeController(mlc);
+							tower.removeController(pc);
+							tower.removeListener(this);
+							tower.activate();
+							configureTowerClickListeners(tower);
+							purchaseInProgress = false;
+						} else {
+							SoundManager.forClass(TowerDef.class).play(
+									INVALID_PURCHASE_SOUND);
+						}
+					}
+				});
+			}
+
+			@Override
+			public boolean canPurchase(int cost) {
+				return cash >= cost && !purchaseInProgress;
+			}
+		};
+
+		sp = new ShopPanel(ph);
+		sp.updateCashDisplay(cash);
+
+$$$SHOP_BUTTONS$$$
+
+		add(sp);
+		sp.setAnchorTopLeft();
+		sp.setLocation(640, 0);
+
+		ip = new InfoPanel(new UpgradeHandler() {
+			@Override
+			public void purchaseUpgrade(int cost) {
+				cash -= cost;
+				SoundManager.forClass(TowerDef.class).play(PURCHASE_SOUND);
+				sp.updateCashDisplay(cash);
+			}
+
+			@Override
+			public boolean canAfford(int cost) {
+				return cash >= cost;
+			}
+		});
+		add(ip);
+		ip.setAnchorTopLeft();
+		ip.setLocation(0, 480);
+	}
+
+	@Override
+	public void viewShown() {
+		if (l != null) {
+			// need to reset
+			remove(l);
+		}
+		l = info.level;
+		add(l);
+		l.setAnchorTopLeft();
+
+		addListener(new TimerListener(48) {
+			@Override
+			public void invoke(GObject target, Context context) {
+				Enemy e = null;
+				int i = (int) (Math.random() * $$$ENEMY_COUNT$$$);
+$$$ENEMY_SWITCH$$$
+				l.initializeEnemy(e, info.difficulty);
+			}
+		});
+
+		l.addListener(new LocalClickListener() {
+			@Override
+			public void invoke(GObject target, Context context) {
+				for (Tower t : context.getInstancesOfClass(Tower.class)) {
+					if (isValid(t, context)) {
+						return;
+					}
+				}
+				ip.setSelectedTower(null);
+			}
+		});
+	}
+
+	private void configureTowerClickListeners(final Tower tower) {
+		tower.addListener(new ButtonListener() {
+			@Override
+			public void mouseClicked(Context context) {
+				ip.setSelectedTower(tower);
+			}
+		});
+	}
+
+	public void enemyKilled(Enemy e) {
+		cash += e.money;
+		sp.updateCashDisplay(cash);
+	}
+
+}

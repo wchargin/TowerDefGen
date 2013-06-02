@@ -1,0 +1,89 @@
+package org.mrumrocks.td;
+
+import java.awt.Font;
+import java.awt.Rectangle;
+
+import jgame.ButtonState;
+import jgame.Context;
+import jgame.GButton;
+import jgame.GMessage;
+import jgame.GSprite;
+import jgame.ImageCache;
+import jgame.SoundManager;
+import jgame.listener.ButtonListener;
+
+public class Button extends GButton {
+
+	private GMessage message;
+
+	public Button(String text) {
+		// Get the cache for easy access.
+		ImageCache cache = ImageCache.forClass(TowerDef.class);
+
+		// Create sprites for the three states.
+		GSprite out = new GSprite(cache.get("$$$BUTTON_OUT$$$"));
+		GSprite hover = new GSprite(cache.get("$$$BUTTON_HOVER$$$"));
+		GSprite pressed = new GSprite(cache.get("$$$BUTTON_PRESSED$$$"));
+
+		// For each one, set the nine-slice center to x=16, y=16, w=16, h=16.
+		for (GSprite sprite : new GSprite[] { out, hover, pressed }) {
+			sprite.setNineSliceCenter(new Rectangle(16, 16, 16, 16));
+		}
+
+		// Now, set the button states.
+		setStateSprite(ButtonState.NONE, out);
+		setStateSprite(ButtonState.HOVERED, hover);
+		setStateSprite(ButtonState.PRESSED, pressed);
+
+		// Set the button size.
+		setSize(200, 60);
+
+		message = new GMessage(text) {
+
+			@Override
+			public double getWidth() {
+				return Button.this.getWidth();
+			}
+
+		};
+
+		// Center the message alignment.
+		message.setAlignmentX(0.5d);
+		message.setAlignmentY(0.5d);
+
+		// Set the message font size.
+		message.setFontSize(24f);
+		message.setFontStyle(Font.BOLD);
+
+		// Size the message.
+		message.setSize(200, 60);
+
+		// Add the message as a child.
+		addAtCenter(message);
+
+		// Add a listener to scale and play sounds.
+		addListener(new ButtonListener() {
+			@Override
+			public void mouseOut(Context context) {
+				setScale(1d);
+			}
+
+			@Override
+			public void mouseOver(Context context) {
+				setScale(1.1d);
+			}
+
+			@Override
+			public void mouseClicked(Context context) {
+				SoundManager.forClass(TowerDef.class)
+						.play("$$$BUTTON_CLICK$$$");
+			}
+
+		});
+
+	}
+
+	public void setText(String string) {
+		message.setText(string);
+	}
+}

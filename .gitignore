@@ -1,0 +1,13 @@
+.settings/
+.classpath
+.project
+ant.jar
+ant-launcher.jar
+c2.jar
+miglayout-4.0-swing.jar
+tools.jar
+bin/ant.jar
+bin/ant-launcher.jar
+bin/jgame-1.2.zip
+bin/rawcopy.zip
+bin/build.xml

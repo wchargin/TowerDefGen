@@ -1,0 +1,81 @@
+package org.mrumrocks.td;
+
+import java.awt.Color;
+
+import jgame.GRootContainer;
+import jgame.Game;
+import jgame.ImageCache;
+import jgame.SoundManager;
+
+/**
+ * The main class for the tower defense game.
+ * 
+ * @author William Chargin
+ * 
+ */
+public class TowerDef extends Game {
+
+	/**
+	 * The title for the game window.
+	 */
+	private static final String GAME_WINDOW_TITLE = "$$$TITLE$$$";
+
+	/**
+	 * The path to the folder creating image files.
+	 */
+	private static final String IMAGES_PREFIX = "/org/mrumrocks/td/rsc/images/";
+
+	/**
+	 * The path to the folder containing sound files.
+	 */
+	private static final String SOUNDS_PREFIX = "/org/mrumrocks/td/rsc/sounds/";
+
+	/**
+	 * Starts the main game.
+	 * 
+	 * @param args
+	 *            the command-line arguments; ignored
+	 */
+	public static void main(String[] args) {
+		// Because `main` is a static method, we must create an instance of the
+		// class we want to use (this one).
+		TowerDef td = new TowerDef();
+
+		// Now, we can start the game.
+		td.startGame(GAME_WINDOW_TITLE);
+	}
+
+	/**
+	 * Creates the tower defense game.
+	 */
+	public TowerDef() {
+		// Set up the caches.
+		ImageCache.create(TowerDef.class, IMAGES_PREFIX);
+		SoundManager.create(TowerDef.class, SOUNDS_PREFIX);
+
+		// Go with 48 FPS.
+		setTargetFPS(48);
+
+		// Create the root container to use for the game.
+		GRootContainer root = new GRootContainer(Color.WHITE);
+
+		// Set the root container.
+		setRootContainer(root);
+
+		// Create the game info block.
+		GameInfoNode info = new GameInfoNode();
+
+		// Create the main menu.
+		MainMenuView mainMenu = new MainMenuView(info);
+		root.addView(ViewType.MAIN_MENU, mainMenu);
+
+		// Create the help screen.
+		HelpView help = new HelpView();
+		root.addView(ViewType.HELP, help);
+
+		// Create the game screen.
+		GameView game = new GameView(info);
+		root.addView(ViewType.GAME, game);
+	}
+
+}

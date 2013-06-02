@@ -1,0 +1,400 @@
+package org.mrumrocks.td;
+
+import jgame.Context;
+import jgame.GContainer;
+import jgame.GMessage;
+import jgame.GObject;
+import jgame.GSprite;
+import jgame.ImageCache;
+import jgame.SoundManager;
+import jgame.controller.AlphaTween;
+import jgame.controller.Interpolation;
+import jgame.controller.MovementTween;
+import jgame.controller.OscillationController;
+import jgame.controller.PulsateController;
+import jgame.controller.RotationTween;
+import jgame.controller.ScaleTween;
+import jgame.listener.ButtonListener;
+import jgame.listener.DelayListener;
+
+import org.mrumrocks.td.maps.MapLevel;
+
+/**
+ * The main menu view of the game.
+ * 
+ * @author William Chargin
+ * 
+ */
+public class MainMenuView extends GContainer {
+
+	/**
+	 * The name of the main menu background image in the images folder.
+	 */
+	private static final String MAIN_MENU_IMAGE = "$$$BACKGROUND$$$";
+
+	/**
+	 * The name of the title image in the images folder.
+	 */
+	private static final String TITLE_IMAGE = "$$$TITLE$$$";
+
+	/**
+	 * The info node.
+	 */
+	private final GameInfoNode info;
+
+	/**
+	 * The container for the various screens.
+	 */
+	private final GContainer screenContainer;
+
+	/**
+	 * Whether the screen is currently animated.
+	 */
+	private boolean moving;
+
+	/**
+	 * The current menu state.
+	 */
+	private MainMenuState state = MainMenuState.TOP_MENU;
+
+	private GContainer difficultyMenu;
+	private GContainer topMenu;
+	private GContainer levelMenu;
+
+	/**
+	 * The possible states for the main menu.
+	 * 
+	 * @author William Chargin
+	 * 
+	 */
+	private enum MainMenuState {
+		TOP_MENU, DIFFICULTY_LEVEL, LEVEL_SELECT;
+	}
+
+	/**
+	 * Creates the main menu.
+	 * 
+	 * @param info
+	 *            the game info to use for the menu
+	 */
+	public MainMenuView(GameInfoNode info) {
+		// Invoke the super constructor, creating an image for the background.
+		super(new GSprite(ImageCache.forClass(TowerDef.class).get(
+				MAIN_MENU_IMAGE)));
+
+		SoundManager.forClass(TowerDef.class).preloadAsync("title_land.wav");
+		SoundManager.forClass(TowerDef.class).preload("$$$BACKGROUND_MUSIC$$$");
+
+		// Assign the game info.
+		this.info = info;
+
+		// This is a top-level view; we should set its size.
+		setSize(800, 600);
+
+		// Create the title.
+		final GSprite title = new GSprite(ImageCache.forClass(TowerDef.class)
+				.get(TITLE_IMAGE));
+
+		title.addController(new RotationTween(24, Interpolation.LINEAR, -30, 0));
+		title.addController(new ScaleTween(24, Interpolation.LINEAR, 4, 1));
+		title.addController(new AlphaTween(24, 0, 1));
+
+		// Add it as a child.
+		add(title);
+
+		// Center it.
+		snapChild(title);
+
+		// Set the anchor point to be at the bottom (100% down).
+		title.setAnchorWeightY(1.0d);
+
+		// Move it off screen.
+		title.setY(0);
+
+		// Create a tween.
+		MovementTween titleIn = new MovementTween(24, Interpolation.EASE_IN, 0,
+				title.getHeight() + 50);
+
+		// Add the tween.
+		title.addController(titleIn);
+
+		// Wait, then play sound.
+		title.addListener(new DelayListener(24) {
+			@Override
+			public void invoke(GObject target, Context context) {
+				SoundManager.forClass(TowerDef.class).play("title_land.wav");
+				SoundManager.forClass(TowerDef.class).loopForever(
+						"$$$BACKGROUND_MUSIC$$$");
+				PulsateController pc = new PulsateController(1.0, 0.01, 24 * 7);
+				pc.setProperties(PulsateController.SCALE);
+				title.addController(pc);
+			}
+		});
+
+		// Create the screen container.
+		screenContainer = new GContainer();
+		screenContainer.setSize(getWidth() * 2, getHeight());
+		screenContainer.setAnchorTopLeft();
+		add(screenContainer);
+
+		topMenu = new GContainer();
+		topMenu.setSize(getWidth(), getHeight());
+		topMenu.setAnchorTopLeft();
+		screenContainer.add(topMenu);
+
+		difficultyMenu = new GContainer();
+		difficultyMenu.setSize(getWidth(), getHeight());
+		difficultyMenu.setAnchorTopLeft();
+		difficultyMenu.setY(getHeight());
+		screenContainer.add(difficultyMenu);
+
+		levelMenu = new GContainer();
+		levelMenu.setSize(getWidth(), getHeight());
+		levelMenu.setAnchorTopLeft();
+		levelMenu.setX(getWidth());
+		screenContainer.add(levelMenu);
+
+		setUpTopMenu();
+		setUpDifficultyMenu();
+		setUpLevelMenu();
+	}
+
+	private void setUpLevelMenu() {
+		GMessage label = new GMessage("Map Select");
+		label.setLocation(levelMenu.getWidth() / 2, 220);
+		label.setSize(200, 60);
+		label.setFontSize(28);
+		label.setAlignmentX(0.5f);
+		label.setAnchorCenter();
+		levelMenu.add(label);
+
+		// Create a list of all the levels available.
+		MapLevel[] levels = {
+$$$NEW_MAP_LEVELS$$$
+							};
+
+		for (int i = 0; i < levels.length; i++) {
+			// Get the level.
+			final MapLevel l = levels[i];
+			final Button btn = l.createThumbnailButton();
+			levelMenu.add(btn);
+			btn.setLocation(i * 250 + 25 + btn.getWidth() / 2, 350);
+			final OscillationController oc = new OscillationController(0, 5, 10);
+			btn.addListener(new ButtonListener() {
+				@Override
+				public void mouseClicked(Context context) {
+					info.level = l;
+					context.setCurrentGameView(ViewType.GAME);
+				}
+
+				@Override
+				public void mouseOut(Context context) {
+					btn.removeController(oc);
+					btn.setRotation(0);
+				}
+
+				@Override
+				public void mouseOver(Context context) {
+					btn.addController(oc);
+				}
+
+			});
+
+		}
+
+		Button btnBack = new Button("Back");
+		btnBack.setWidth(725);
+		levelMenu.addAtCenter(btnBack);
+		btnBack.addListener(new ButtonListener() {
+
+			@Override
+			public void mouseClicked(Context context) {
+				if (!moving && state == MainMenuState.LEVEL_SELECT) {
+					moving = true;
+					screenContainer.addController(new MovementTween(24,
+							getWidth(), 0));
+					addListener(new DelayListener(24) {
+						@Override
+						public void invoke(GObject target, Context context) {
+							moving = false;
+							state = MainMenuState.DIFFICULTY_LEVEL;
+						}
+					});
+				}
+			}
+
+		});
+		btnBack.setY(500);
+	}
+
+	private void setUpDifficultyMenu() {
+		GMessage label = new GMessage("Difficulty Select");
+		label.setLocation(difficultyMenu.getWidth() / 2 + 150, 220);
+		label.setSize(250, 60);
+		label.setFontSize(28);
+		label.setAlignmentX(0.5d);
+		label.setAnchorCenter();
+		difficultyMenu.add(label);
+
+		final GameDifficulty[] difficultyLevels = GameDifficulty.values();
+		for (int i = 0; i < difficultyLevels.length; i++) {
+			// Get the difficulty level.
+			final GameDifficulty difficulty = difficultyLevels[i];
+
+			// Create the button.
+			Button b = new Button(difficulty.name);
+
+			// Add the button.
+			difficultyMenu.add(b);
+
+			// Set the location.
+			b.setLocation(difficultyMenu.getWidth() / 2 + 150,
+					i * (b.getHeight() + 25) + 250);
+
+			b.addListener(new ButtonListener() {
+				@Override
+				public void mouseClicked(Context context) {
+					if (!moving && state == MainMenuState.DIFFICULTY_LEVEL) {
+						moving = true;
+						screenContainer.addController(new MovementTween(24,
+								-getWidth(), 0));
+						info.difficulty = difficulty;
+						addListener(new DelayListener(24) {
+							@Override
+							public void invoke(GObject target, Context context) {
+								moving = false;
+								state = MainMenuState.LEVEL_SELECT;
+							}
+						});
+					}
+				}
+
+			});
+		}
+
+		Button difficultyBack = new Button("Back");
+		difficultyMenu.add(difficultyBack);
+		difficultyBack.setLocation(difficultyMenu.getWidth() / 2 + 150,
+				difficultyLevels.length * (difficultyBack.getHeight() + 25)
+						+ 250);
+		difficultyBack.addListener(new ButtonListener() {
+
+			@Override
+			public void mouseClicked(Context context) {
+				if (!moving && state == MainMenuState.DIFFICULTY_LEVEL) {
+					moving = true;
+					topMenu.addController(new MovementTween(24, 150, 0));
+					difficultyMenu.addController(new MovementTween(24, 0,
+							getHeight()));
+					addListener(new DelayListener(24) {
+						@Override
+						public void invoke(GObject target, Context context) {
+							moving = false;
+							state = MainMenuState.TOP_MENU;
+						}
+					});
+				}
+			}
+
+		});
+	}
+
+	private void setUpTopMenu() {
+		// Define the button names.
+		String[] buttonNames = { "Play", "Help", "Quit" };
+
+		// Create each button.
+		for (int i = 0; i < buttonNames.length; i++) {
+			// Create the button.
+			final Button b = new Button(buttonNames[i]);
+
+			// Add the button.
+			topMenu.add(b);
+
+			// Set the y-position.
+			b.setY(i * (b.getHeight() + 25) + 250);
+
+			// Tween the button in, setting the x-position.
+			tweenInButton(b, i * 8 + 18);
+
+			switch (i) {
+			case 0:
+				// play
+				b.addListener(new ButtonListener() {
+
+					@Override
+					public void mouseClicked(Context context) {
+						if (!moving && state == MainMenuState.TOP_MENU) {
+							moving = true;
+							topMenu.addController(new MovementTween(24, -150, 0));
+							difficultyMenu.addController(new MovementTween(24,
+									0, -getHeight()));
+							addListener(new DelayListener(24) {
+								@Override
+								public void invoke(GObject target,
+										Context context) {
+									moving = false;
+									state = MainMenuState.DIFFICULTY_LEVEL;
+								}
+							});
+						}
+					}
+
+				});
+				break;
+			case 1:
+				// help
+				b.addListener(new ButtonListener() {
+					@Override
+					public void mouseClicked(Context context) {
+						context.setCurrentGameView(ViewType.HELP);
+					}
+				});
+				break;
+			case 2:
+				// quit
+				b.addListener(new ButtonListener() {
+					@Override
+					public void mouseClicked(Context context) {
+						context.stopGame();
+					}
+				});
+			}
+
+		}
+	}
+
+	private void tweenInButton(final Button b, int delay) {
+		// Create the tween to move into place.
+		final MovementTween in = new MovementTween(36, Interpolation.EASE_IN,
+				getWidth() / 2 + b.getWidth() + 50, 0);
+
+		// Create the tween to bounce.
+		final MovementTween bounce = new MovementTween(18,
+				Interpolation.EASE_OUT, -50, 0);
+
+		// Chain the tweens.
+		in.chain(bounce);
+
+		// Position the button.
+		b.setX(-b.getWidth());
+
+		// Create a listener to add the tween.
+		DelayListener dl = new DelayListener(delay) {
+			@Override
+			public void invoke(GObject target, Context context) {
+				b.addController(in);
+				b.addListener(new DelayListener(36) {
+					@Override
+					public void invoke(GObject target, Context context) {
+						SoundManager.forClass(TowerDef.class).play(
+								"button_in.wav");
+					}
+				});
+			}
+		};
+
+		// Add the listener.
+		b.addListener(dl);
+	}
+}

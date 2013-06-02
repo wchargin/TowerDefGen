@@ -1,0 +1,50 @@
+package org.mrumrocks.td;
+
+import jgame.Context;
+import jgame.GContainer;
+import jgame.GSprite;
+import jgame.ImageCache;
+import jgame.listener.ButtonListener;
+
+/**
+ * The help screen.
+ * 
+ * @author William Chargin
+ * 
+ */
+public class HelpView extends GContainer {
+
+	/**
+	 * The name of the help image in the images directory.
+	 */
+	private static final String HELP_IMAGE = "$$$HELP_IMAGE$$$";
+
+	public HelpView() {
+		// Invoke the super constructor, creating an image for the background.
+		super(new GSprite(ImageCache.forClass(TowerDef.class).get(HELP_IMAGE)));
+
+		// This is a top-level view; we should set its size.
+		setSize(800, 600);
+
+		// Create the back button.
+		Button back = new Button("Back to Menu");
+
+		// Add the button.
+		add(back);
+
+		// Center the button.
+		snapChild(back);
+
+		// Set the button's Y position.
+		back.setY(550);
+
+		// Make the back button functional.
+		back.addListener(new ButtonListener() {
+			@Override
+			public void mouseClicked(Context context) {
+				context.setCurrentGameView(ViewType.MAIN_MENU);
+			}
+		});
+	}
+
+}

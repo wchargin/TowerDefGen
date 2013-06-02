@@ -1,0 +1,78 @@
+package org.mrumrocks.td.shop;
+
+import java.awt.Font;
+import java.util.ArrayList;
+import java.util.List;
+
+import jgame.GContainer;
+import jgame.GMessage;
+import jgame.GSprite;
+import jgame.ImageCache;
+
+import org.mrumrocks.td.TowerDef;
+
+public class ShopPanel extends GContainer {
+
+	/**
+	 * The list of shop buttons in this panel.
+	 */
+	private final List<ShopButton> buttons = new ArrayList<ShopButton>();
+
+	/**
+	 * The purchase handler used for buttons.
+	 */
+	private PurchaseHandler ph;
+
+	/**
+	 * The cash display.
+	 */
+	private GMessage cashDisplay;
+
+	public ShopPanel(PurchaseHandler handler) {
+		super(new GSprite(ImageCache.forClass(TowerDef.class).get(
+				"shop/" + "$$$SHOP_BACKGROUND$$$")));
+
+		setSize(800 - 640, 480);
+
+		GMessage title = new GMessage("Shop");
+		title.setFontSize(24);
+		title.setFontStyle(Font.BOLD);
+		title.setSize(getWidth(), 64);
+		title.setAlignmentX(0.5);
+		title.setAlignmentY(0.5);
+		addAtCenter(title);
+		title.setY(32);
+
+		cashDisplay = new GMessage();
+		cashDisplay.setAlignmentX(0.5d);
+		cashDisplay.setAlignmentY(0.5d);
+		cashDisplay.setSize(getWidth(), 14);
+		cashDisplay.setFontSize(12);
+		addAtCenter(cashDisplay);
+		cashDisplay.setY(getHeight() - 7);
+		this.ph = handler;
+	}
+
+	public void updateCashDisplay(int cash) {
+		cashDisplay.setText("Cash: $" + cash);
+	}
+
+	public void addButton(ShopButton button) {
+		button.setPurchaseHandler(ph);
+
+		add(button);
+		int numAlready = buttons.size();
+		int rowsAlready = numAlready / 2;
+		button.setY(64 + 4 + rowsAlready * (button.getHeight() + 4)
+				+ button.getHeight() / 2);
+		if (numAlready % 2 == 0) {
+			// even number; left side
+			button.setX((getWidth() - button.getWidth()) / 2 - 4);
+		} else {
+			// odd number; right side
+			button.setX((getWidth() + button.getWidth()) / 2 + 4);
+		}
+		buttons.add(button);
+	}
+
+}

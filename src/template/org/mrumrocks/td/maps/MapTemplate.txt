@@ -1,0 +1,22 @@
+package org.mrumrocks.td.maps;
+
+import java.awt.Polygon;
+
+import jgame.ImageCache;
+
+import org.mrumrocks.td.TowerDef;
+
+public class $$$NAME$$$ extends MapLevel {
+
+	public $$$NAME$$$() {
+		super(ImageCache.forClass(TowerDef.class).get("maps/" + "$$$IMAGE$$$"),
+				ImageCache.forClass(TowerDef.class).get("maps/" + "$$$ICON$$$"));
+		pathWidth = Integer.parseInt("$$$PATH_WIDTH$$$");
+	}
+
+	@Override
+	protected Polygon createWaypointPolygon() {
+$$$POLYGON$$$
+	}
+
+}

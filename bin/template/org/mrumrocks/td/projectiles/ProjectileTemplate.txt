@@ -1,0 +1,12 @@
+package org.mrumrocks.td.projectiles;
+
+import jgame.ImageCache;
+
+import org.mrumrocks.td.TowerDef;
+
+public class $$$NAME$$$ extends Projectile {
+	public $$$NAME$$$() {
+		super(ImageCache.forClass(TowerDef.class).get(
+				"projectiles/" + "$$$IMAGE$$$"), Integer.parseInt("$$$HEALTH$$$"));
+	}
+}

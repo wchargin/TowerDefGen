@@ -1,0 +1,20 @@
+package org.mrumrocks.td.enemies;
+
+import jgame.ImageCache;
+
+import org.mrumrocks.td.TowerDef;
+
+public class $$$NAME$$$ extends Enemy {
+
+	private static final String IMAGE = "$$$IMAGE$$$";
+	private static final int HEALTH = Integer.parseInt("$$$HEALTH$$$");
+	private static final int MONEY = Integer.parseInt("$$$MONEY$$$");
+	private static final int SLOWNESS = Integer.parseInt("$$$SLOWNESS$$$");
+
+	public $$$NAME$$$ () {
+		super(ImageCache.forClass(TowerDef.class).get("enemies/" + IMAGE),
+			HEALTH, MONEY, SLOWNESS);
+		setPrimitive(PrimitiveShape.CIRCLE);
+	}
+
+}
