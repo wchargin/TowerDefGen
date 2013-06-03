@@ -15,6 +15,7 @@ import java.util.Map;
 
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.ProjectHelper;
+import org.mrumrocks.towerdefgen.core.CodeGenerator.CodeProgress.CodeGenerationState;
 import org.mrumrocks.towerdefgen.data.EnemiesData;
 import org.mrumrocks.towerdefgen.data.EnemiesData.SingleEnemyData;
 import org.mrumrocks.towerdefgen.data.GeneralData;
@@ -28,6 +29,29 @@ import org.mrumrocks.towerdefgen.data.TowersData.SingleTowerData;
 import org.mrumrocks.towerdefgen.data.TowersData.TowerLevelData;
 
 public class CodeGenerator {
+
+	public static interface CodeProgress {
+
+		public class CodeGenerationState {
+			public final Aspect aspect;
+			public final boolean compiling;
+
+			private CodeGenerationState(Aspect aspect) {
+				super();
+				this.aspect = aspect;
+				this.compiling = false;
+			}
+
+			private CodeGenerationState() {
+				super();
+				this.aspect = null;
+				this.compiling = true;
+			}
+		}
+
+		public void progressUpdated(CodeGenerationState newState);
+
+	}
 
 	private static class Switch extends HashMap<Integer, String> {
 		/**
@@ -302,17 +326,24 @@ public class CodeGenerator {
 
 	}
 
-	public synchronized static void generateJar(GameData data, File output) {
+	public synchronized static void generateJar(GameData data, File output,
+			CodeProgress updater) {
 		try {
 			File tempDir = Files.createTempDirectory(null).toFile();
 			String tempPath = tempDir.getAbsolutePath();
 			System.out.println(tempPath);
 
+			updater.progressUpdated(new CodeGenerationState(Aspect.GENERAL));
 			generateGeneralAndShop(data, tempDir);
+			updater.progressUpdated(new CodeGenerationState(Aspect.LEVELS));
 			generateLevels(data.levels, tempDir);
+			updater.progressUpdated(new CodeGenerationState(Aspect.TOWERS));
 			generateTowers(data.towers, tempDir);
+			updater.progressUpdated(new CodeGenerationState(Aspect.ENEMIES));
 			generateEnemies(data.enemies, tempDir);
+			updater.progressUpdated(new CodeGenerationState(Aspect.PROJECTILES));
 			generateProjectiles(data.projectiles, tempDir);
+			updater.progressUpdated(new CodeGenerationState());
 
 			// Copy the rawcopy
 			copyFromJar("/rawcopy.zip", tempDir);

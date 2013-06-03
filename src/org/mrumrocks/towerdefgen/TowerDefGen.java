@@ -2,6 +2,7 @@ package org.mrumrocks.towerdefgen;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,8 +14,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -23,7 +28,9 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
@@ -31,8 +38,13 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
+import net.miginfocom.layout.CC;
+import net.miginfocom.swing.MigLayout;
+
+import org.mrumrocks.towerdefgen.TowerDefGen.ProgressIndicator.ProgressState;
 import org.mrumrocks.towerdefgen.core.Aspect;
 import org.mrumrocks.towerdefgen.core.CodeGenerator;
+import org.mrumrocks.towerdefgen.core.CodeGenerator.CodeProgress;
 import org.mrumrocks.towerdefgen.core.Data;
 import org.mrumrocks.towerdefgen.core.GameData;
 import org.mrumrocks.towerdefgen.core.Invalid;
@@ -190,22 +202,135 @@ public class TowerDefGen extends JFrame {
 			selected = new File(selected.getAbsolutePath() + ".jar");
 		}
 
-		CodeGenerator.generateJar(getDataObject(), selected);
+		final Map<Aspect, ProgressIndicator> boxes = new LinkedHashMap<>();
+		boxes.put(Aspect.GENERAL, new ProgressIndicator(
+				"Generating general and shop code"));
+		boxes.put(Aspect.LEVELS, new ProgressIndicator("Generating level code"));
+		boxes.put(Aspect.TOWERS, new ProgressIndicator("Generating tower code"));
+		boxes.put(Aspect.ENEMIES,
+				new ProgressIndicator("Generating enemy code"));
+		boxes.put(Aspect.PROJECTILES, new ProgressIndicator(
+				"Generating projectile code"));
+		boxes.put(null, new ProgressIndicator("Compiling and packaging code"));
 
-		int ret = JOptionPane
-				.showConfirmDialog(
-						this,
-						"Your game has been exported. Would you like to launch it now?",
-						"Export Complete", JOptionPane.YES_NO_OPTION);
-		if (ret == JOptionPane.YES_OPTION) {
-			ProcessBuilder pb = new ProcessBuilder("java", "-jar",
-					selected.getAbsolutePath());
-			try {
-				pb.start();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}		
+		final JPanel pnlDialog = new JPanel(new MigLayout());
+
+		JLabel lblTitle = new JLabel("Code generation in progress.");
+		JLabel lblSubtitle = new JLabel("Please wait...");
+		lblTitle.setFont(lblTitle.getFont().deriveFont(24f)
+				.deriveFont(Font.BOLD));
+		lblSubtitle.setFont(lblSubtitle.getFont().deriveFont(18f));
+
+		CC labels = new CC().growX().pushX().wrap(); // looks nicer without span
+
+		pnlDialog.add(lblTitle, labels);
+		pnlDialog.add(lblSubtitle, labels);
+		pnlDialog.add(new JSeparator(JSeparator.HORIZONTAL), new CC().growX()
+				.pushX().spanX());
+
+		for (ProgressIndicator indicator : boxes.values()) {
+			indicator.addTo(pnlDialog);
 		}
+
+		JProgressBar pb = new JProgressBar();
+		pb.setIndeterminate(true);
+		pnlDialog.add(pb, new CC().newline().growX().pushX().spanX());
+
+		final JDialog dialog = new JDialog(TowerDefGen.this,
+				"Code Generation Progress");
+		dialog.setContentPane(pnlDialog);
+		dialog.pack();
+		dialog.setLocationRelativeTo(TowerDefGen.this);
+		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		dialog.setVisible(true);
+		dialog.setModal(true);
+
+		final File finalFile = selected;
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				CodeGenerator.generateJar(getDataObject(), finalFile,
+						new CodeProgress() {
+							private CodeGenerationState lastState = null;
+
+							@Override
+							public void progressUpdated(
+									CodeGenerationState newState) {
+								if (lastState != null) {
+									boxes.get(lastState.aspect).setState(
+											ProgressState.COMPLETED);
+								}
+								lastState = newState;
+								boxes.get(newState.aspect).setState(
+										ProgressState.IN_PROGRESS);
+							}
+
+						});
+				dialog.setVisible(false);
+				dialog.dispose();
+
+				int ret = JOptionPane
+						.showConfirmDialog(
+								TowerDefGen.this,
+								"Your game has been exported. Would you like to launch it now?",
+								"Export Complete", JOptionPane.YES_NO_OPTION);
+				if (ret == JOptionPane.YES_OPTION) {
+					ProcessBuilder pb = new ProcessBuilder("java", "-jar",
+							finalFile.getAbsolutePath());
+					try {
+						pb.start();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+
+	}
+
+	public static class ProgressIndicator {
+		private JLabel message;
+		private JLabel status;
+
+		public void addTo(JComponent container) {
+			container.add(message, new CC().newline().pushX().growX());
+			container.add(status, new CC().pushX().growX().minWidth("100"));
+		}
+
+		public ProgressIndicator(String message) {
+			this.message = new JLabel(message);
+			this.message.setHorizontalAlignment(JLabel.LEFT);
+			this.status = new JLabel();
+			setState(ProgressState.NOT_STARTED);
+		}
+
+		public void setState(ProgressState state) {
+			status.setText(state.name);
+			switch (state) {
+			case IN_PROGRESS:
+				message.setFont(message.getFont().deriveFont(Font.BOLD));
+				break;
+			case NOT_STARTED:
+			case COMPLETED:
+				message.setFont(message.getFont().deriveFont(Font.PLAIN));
+				break;
+			}
+		}
+
+		public enum ProgressState {
+			NOT_STARTED(""), IN_PROGRESS("In progress"), COMPLETED("Completed");
+			public final String name;
+
+			public String getName() {
+				return name;
+			}
+
+			private ProgressState(String name) {
+				this.name = name;
+			}
+
+		}
+
 	}
 
 	private KeyStroke getAccelerator(int vk, int maskAdditions) {
